@@ -1,0 +1,38 @@
+#!/bin/bash
+
+PATH_TO_PROJECT="$1"
+PROJECT_NAME="$( echo "$1" | sed 's@.*/@@' )"
+SONAR_VERSION="4.4.1.1530"
+
+if [[ -z "$PROJECT_NAME" ]]; then
+   echo "Project name can't be null. Either project does not exist or you have / at the end of path"
+   exit;
+fi
+
+if [ ! -d ~/${PATH_TO_PROJECT} ]; then
+    echo "File not found!"
+    exit;
+fi
+
+pushd $(mktemp -d)
+    wget https://github.com/SonarSource/sonar-scanner-msbuild/releases/download/${SONAR_VERSION}/sonar-scanner-msbuild-${SONAR_VERSION}-net46.zip
+    unzip sonar-scanner-msbuild-${SONAR_VERSION}-net46.zip
+    TEMP_DIR=$(pwd)    
+popd
+
+cd ~/$PATH_TO_PROJECT
+
+Echo "Starting SonarScanner for $PROJECT_NAME..."
+mono ${TEMP_DIR}/SonarScanner.MSBuild.exe begin /k:$PROJECT_NAME
+
+Echo "Rebuilding..."
+MSbuild /t:rebuild
+
+Echo "Rebuild done"
+mono ${TEMP_DIR}/SonarScanner.MSBuild.exe end
+
+Echo "SonarScanner ended..."
+
+open http://localhost:9000
+
+tput bel
